@@ -32,7 +32,6 @@ def handle_client(connection, address):
 
             # Check if client username is banned
             client_banned = persistence.users.is_banned(client_username)
-            print(client_banned)
             if isinstance(client_banned, bool) and client_banned:
                 client.send_message(enums.MessageType.ERROR,
                                     "Your username is permanently banned from the server!")

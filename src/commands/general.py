@@ -62,6 +62,11 @@ def general_broadcast(client, args, rmx):
         client.send_message(enums.MessageType.HELP, help_super_moderator["broadcast"])
         return True
 
+    if client.get_level().value < enums.ClientLevel.SUPER_MODERATOR.value:
+        client.send_message(enums.MessageType.ERROR,
+                            "You are not allowed to use this command!")
+        return True
+
     for broadcast_client in globals.client_list.values():
         broadcast_client.send_message(enums.MessageType.BROADCAST,
                                       "%f %s %s"
