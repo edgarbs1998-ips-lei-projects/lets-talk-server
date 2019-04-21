@@ -50,7 +50,7 @@ class Client:
 
     def send_message(self, message_type, message):
         self.__connection.send((message_type.value + message).encode(settings.ENCODING))
-        time.sleep(0.01)
+        time.sleep(0.2)
 
     def send_channels(self):
         channels = ""

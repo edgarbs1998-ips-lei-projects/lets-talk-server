@@ -25,27 +25,26 @@ def handle_client(connection, address):
                 return True
 
             if len(client_username) < 3:
-                print("test1")
                 client.send_message(enums.MessageType.ERROR,
                                     "Your username must be at least 3 characters long!")
                 continue
 
             # Check if client username is banned
             client_banned = persistence.users.is_banned(client_username)
-            if client_banned:
-                client.send_message(enums.MessageType.ERROR,
-                                    "Your username is permanently banned from the server!")
-                client.get_connection().close()
-                print("[%s] Client with username %s is permanently banned!"
-                      % (datetime.now().strftime(settings.DATETIME_FORMAT), client_username))
-                return True
-            elif client_banned > 0:
+            if client_banned > 0:
                 client.send_message(enums.MessageType.ERROR,
                                     "Your username is banned from the server for %d more hours!"
                                     % client_banned)
                 client.get_connection().close()
                 print("[%s] Client with username %s is banned for %d more hours!"
                       % (datetime.now().strftime(settings.DATETIME_FORMAT), client_username, client_banned))
+                return True
+            elif client_banned:
+                client.send_message(enums.MessageType.ERROR,
+                                    "Your username is permanently banned from the server!")
+                client.get_connection().close()
+                print("[%s] Client with username %s is permanently banned!"
+                      % (datetime.now().strftime(settings.DATETIME_FORMAT), client_username))
                 return True
 
             if client_username in globals.client_list:
@@ -57,6 +56,7 @@ def handle_client(connection, address):
                 client_password = client.receive_message()
                 if persistence.users.get_client(client_username, client_password):
                     client.set_logged(True)
+                    client.set_level(persistence.users.get_level(client_username))
                     client.send_message(enums.MessageType.INFO,
                                         "You are now logged in!")
                     break
@@ -71,6 +71,11 @@ def handle_client(connection, address):
         client.send_message(enums.MessageType.INFO,
                             "You are now connected, %s!"
                             % client.get_username())
+        for channel_client in globals.channel_list["general"].get_clients():
+            if channel_client in globals.client_list:
+                globals.client_list[channel_client].send_message(enums.MessageType.INFO,
+                                                                 "Client @%s connected to the server!"
+                                                                 % client.get_username())
         print("[%s] Client connected with username %s"
               % (datetime.now().strftime(settings.DATETIME_FORMAT), client.get_username()))
 
@@ -95,6 +100,11 @@ def handle_client(connection, address):
         # Close client connection
         for channel in globals.channel_list.values():
             channel.remove_client(client.get_username())
+            for channel_client in globals.channel_list["general"].get_clients():
+                if channel_client in globals.client_list:
+                    globals.client_list[channel_client].send_message(enums.MessageType.INFO,
+                                                                     "Client @%s connected to the server!"
+                                                                     % client.get_username())
         if client.get_username() in globals.client_list:
             globals.client_list.pop(client.get_username())
         client.get_connection().close()
@@ -104,6 +114,11 @@ def handle_client(connection, address):
         if client.get_username() is not None:
             for channel in globals.channel_list.values():
                 channel.remove_client(client.get_username())
+                for channel_client in globals.channel_list["general"].get_clients():
+                    if channel_client in globals.client_list:
+                        globals.client_list[channel_client].send_message(enums.MessageType.INFO,
+                                                                         "Client @%s connected to the server!"
+                                                                         % client.get_username())
             if client.get_username() in globals.client_list:
                 globals.client_list.pop(client.get_username())
         client.get_connection().close()

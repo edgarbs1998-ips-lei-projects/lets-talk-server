@@ -66,7 +66,7 @@ class Channel:
 
     def add_banned(self, username, timestamp):
         if username in self.__clients:
-            del self.__clients[username]
+            self.__clients.remove(username)
         self.__banned[username] = timestamp
 
     def remove_banned(self, username):

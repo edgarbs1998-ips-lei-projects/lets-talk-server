@@ -6,25 +6,27 @@ import globals
 
 help_regular = {
     "help": "[HELP] Print the client available commands and their usage."
-            "\nUsage: client help",
+            "\nUsage: /user help",
     "password": "[PASSWORD] Change your accounts password."
-                "\nUsage: client password <password>",
+                "\nUsage: /user password <password>",
     "private": "[PRIVATE] Send a private message to a specified user."
-               "\nUsage: client private <user> <message>"
+               "\nUsage: /user private <user> <message>",
+    "list": "[LIST] List all server clients."
+            "\nUsage: /user list"
 }
 
 help_super_moderator = {
     "kick": "[KICK] Kick the specified user from the server."
-            "\nUsage: client kick <user>",
+            "\nUsage: /user kick <user>",
     "ban": "[BAN] Ban the specified user from the server."
            "\nIf hours are not specified the ban is permanent."
-           "\nUsage: client ban <user> [hours]",
+           "\nUsage: /user ban <user> [hours]",
     "unban": "[UNBAN] Unban the specified user from the server."
-             "\nUsage: client unban <user>",
+             "\nUsage: /user unban <user>",
     "promote": "[PROMOTE] Promote the specified user to super moderator."
-               "\nUsage: client promote <user>",
+               "\nUsage: /user promote <user>",
     "demote": "[DEMOTE] Demote the specified user from super moderator."
-              "\nUsage: client demote <user>",
+              "\nUsage: /user demote <user>",
 }
 
 
@@ -81,13 +83,23 @@ def user_private(client, args, rmx):
     return True
 
 
+def user_list(client, args, rmx):
+    users = ""
+    for user_name in globals.client_list.keys():
+        users += user_name + " "
+    client.send_message(enums.MessageType.INFO,
+                        "The following clients are online: %s" % users)
+
+    return True
+
+
 # Super moderator commands
 def user_kick(client, args, rmx):
     if args is None or len(args) == 0:
         client.send_message(enums.MessageType.HELP, help_super_moderator["kick"])
         return True
 
-    if client.get_level() < enums.ClientLevel.SUPER_MODERATOR:
+    if client.get_level().value < enums.ClientLevel.SUPER_MODERATOR.value:
         client.send_message(enums.MessageType.ERROR,
                             "You are not allowed to use this command!")
         return True
@@ -113,7 +125,7 @@ def user_ban(client, args, rmx):
         client.send_message(enums.MessageType.HELP, help_super_moderator["ban"])
         return True
 
-    if client.get_level() < enums.ClientLevel.SUPER_MODERATOR:
+    if client.get_level().value < enums.ClientLevel.SUPER_MODERATOR.value:
         client.send_message(enums.MessageType.ERROR,
                             "You are not allowed to use this command!")
         return True
@@ -126,14 +138,14 @@ def user_ban(client, args, rmx):
         return True
 
     if len(ban_args) > 1:
-        ban_hours = ban_args[1].strip()
+        ban_hours = float(ban_args[1].strip())
         ban_seconds = ban_hours * 60 * 60
         ban_duration = datetime.timestamp(datetime.now()) + ban_seconds
     else:
         ban_hours = 0
         ban_duration = None
 
-    persistence.users.ban_client(client.get_username(), ban_duration)
+    persistence.users.ban_client(client, ban_duration)
 
     ban_client = globals.client_list[client_name]
     if ban_duration is None:
@@ -158,7 +170,7 @@ def user_unban(client, args, rmx):
         client.send_message(enums.MessageType.HELP, help_super_moderator["unban"])
         return True
 
-    if client.get_level() < enums.ClientLevel.SUPER_MODERATOR:
+    if client.get_level().value < enums.ClientLevel.SUPER_MODERATOR.value:
         client.send_message(enums.MessageType.ERROR,
                             "You are not allowed to use this command!")
         return True
@@ -184,7 +196,7 @@ def user_promote(client, args, rmx):
             client.send_message(enums.MessageType.HELP, help_super_moderator["promote"])
             return True
 
-        if client.get_level() < enums.ClientLevel.SUPER_MODERATOR:
+        if client.get_level().value < enums.ClientLevel.SUPER_MODERATOR.value:
             client.send_message(enums.MessageType.ERROR,
                                 "You are not allowed to use this command!")
             return True
@@ -211,7 +223,7 @@ def user_demote(client, args, rmx):
             client.send_message(enums.MessageType.HELP, help_super_moderator["demote"])
             return True
 
-        if client.get_level() < enums.ClientLevel.SUPER_MODERATOR:
+        if client.get_level().value < enums.ClientLevel.SUPER_MODERATOR.value:
             client.send_message(enums.MessageType.ERROR,
                                 "You are not allowed to use this command!")
             return True
@@ -237,6 +249,7 @@ switcher = {
     "help": user_help,
     "password": user_password,
     "private": user_private,
+    "list": user_list,
 
     # Moderator commands
     "kick": user_kick,

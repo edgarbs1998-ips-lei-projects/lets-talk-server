@@ -19,6 +19,11 @@ def client_message(client, message, rmx):
                             "\nFor that just type '/register <password>'.")
         return True
 
+    if client.get_channel() == "general":
+        client.send_message(enums.MessageType.WARNING,
+                            "You can not send messages on #general channel! Please, join a different channel.")
+        return True
+
     if client.get_channel() not in globals.channel_list:
         client.set_channel("general")
         client.send_message(enums.MessageType.ERROR,

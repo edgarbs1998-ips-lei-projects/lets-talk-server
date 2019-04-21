@@ -6,29 +6,29 @@ import enums
 
 help_regular = {
     "help": "[HELP] Print the available commands and their usage."
-            "\nUsage: help",
+            "\nUsage: /help",
     "register": "[REGISTER] Register your current username."
-                "\nUsage: register <password>",
+                "\nUsage: /register <password>",
     "user": "[USER] Commands related to user management."
             "\nUsage: user <action> [arguments]"
-            "\nHelp: user help",
+            "\nHelp: /user help",
     "channel": "[CHANNEL] Commands related to channel usage and management."
                "\nUsage: channel <action> [arguments]"
-               "\nHelp: channel help",
+               "\nHelp: /channel help",
     "exit": "[EXIT] Disconnects you from the chat."
-            "\nUsage: exit",
+            "\nUsage: /exit",
 }
 
 help_super_moderator = {
     "broadcast": "[BROADCAST] Send a message to all connected clients."
-                 "\nUsage: broadcast <message>",
+                 "\nUsage: /broadcast <message>",
 }
 
 
 def general_help(client, args, rmx):
     commands.common_help(client, "General Commands", help_regular)
 
-    if client.get_level() == enums.ClientLevel.SUPER_MODERATOR:
+    if client.get_level().value == enums.ClientLevel.SUPER_MODERATOR.value:
         commands.common_help(client, "General Commands [Super Moderator]", help_super_moderator)
 
     return True
@@ -62,10 +62,10 @@ def general_broadcast(client, args, rmx):
         client.send_message(enums.MessageType.HELP, help_super_moderator["broadcast"])
         return True
 
-    for client in globals.client_list.values():
-        client.send_message(enums.MessageType.BROADCAST,
-                            "%f %s %s"
-                            % (datetime.timestamp(rmx), client.get_username(), args))
+    for broadcast_client in globals.client_list.values():
+        broadcast_client.send_message(enums.MessageType.BROADCAST,
+                                      "%f %s %s"
+                                      % (datetime.timestamp(rmx), client.get_username(), args))
 
     return True
 

@@ -79,6 +79,12 @@ def demote_client(username):
     return False
 
 
+def get_level(username):
+    if username in _users_list:
+        return _users_list[username]["level"]
+    return False
+
+
 def ban_client(username, timestamp):
     if username in _users_list:
         _users_list[username]["banned"] = timestamp
