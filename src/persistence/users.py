@@ -106,7 +106,7 @@ def is_banned(username):
         banned_timestamp = _users_list[username]["banned"]
         if banned_timestamp is None:
             return True
-        elif not banned_timestamp:
+        else:
             diff = banned_timestamp - datetime.timestamp(datetime.now())
             if diff > 0:
                 diff_hours = math.ceil(diff / 60 / 60)

@@ -63,19 +63,18 @@ def channel_join(client, args, rmx):
             return True
 
         client_banned = globals.channel_list[channel_name].is_banned(client.get_username())
-        if client_banned > 0:
+        if isinstance(client_banned, bool) and client_banned:
+            client.send_message(enums.MessageType.WARNING,
+                                "You are permanently banned from the specified channel!")
+            return True
+        elif client_banned > 0:
             client.send_message(enums.MessageType.WARNING,
                                 "You are banned from the specified channel for %d more hours!"
                                 % client_banned)
             return True
-        elif client_banned:
-            client.send_message(enums.MessageType.WARNING,
-                                "You are permanently banned from the specified channel!")
-            return True
 
         globals.channel_list[channel_name].add_client(client.get_username())
         client.send_channels()
-        time.sleep(0.2)
         client.set_channel(channel_name)
         client.send_message(enums.MessageType.INFO,
                             "You have joined the #%s channel."
@@ -122,7 +121,7 @@ def channel_set(client, args, rmx):
 
 def channel_list(client, args, rmx):
     channels = ""
-    for channel_name in globals.channel_list.keys():
+    for channel_name in globals.channel_list:
         channels += channel_name + " "
     client.send_message(enums.MessageType.INFO,
                         "The following channels are available to join: %s" % channels)
@@ -150,7 +149,6 @@ def channel_leave(client, args, rmx):
 
         globals.channel_list[channel_name].remove_client(client.get_username())
         client.send_channels()
-        time.sleep(0.2)
         client.send_message(enums.MessageType.INFO,
                             "You have left the #%s channel."
                             % channel_name)
@@ -245,8 +243,8 @@ def channel_destroy(client, args, rmx):
                                 "You can not destroy #general channel!")
             return True
 
-        print(globals.channel_list[channel_name].get_clients())  # TODO Fix this shit
-        for channel_client_username in globals.channel_list[channel_name].get_clients():
+        channel_clients = globals.channel_list[channel_name].get_clients().copy()
+        for channel_client_username in channel_clients:
             globals.channel_list[channel_name].remove_client(channel_client_username)
             if channel_client_username in globals.client_list:
                 channel_client = globals.client_list[channel_client_username]
@@ -257,8 +255,8 @@ def channel_destroy(client, args, rmx):
                 if channel_client.get_channel() == channel_name:
                     channel_client.set_channel("general")
                     channel_client.send_message(enums.MessageType.INFO,
-                                               "Your active channel has been destroyed!"
-                                               "\nYour active channel has been set to #general.")
+                                                "Your active channel has been destroyed!"
+                                                "\nYour active channel has been set to #general.")
         del globals.channel_list[channel_name]
         persistence.channels.destroy_channel(channel_name)
     else:
@@ -344,6 +342,11 @@ def channel_ban(client, args, rmx):
 
         ban_args = args.split(" ", 1)
         client_name = ban_args[0].strip()
+        if client_name not in globals.client_list:
+            client.send_message(enums.MessageType.ERROR,
+                                "The specified client is not connected to the server!")
+            return True
+
         if len(ban_args) > 1:
             ban_hours = float(ban_args[1].strip())
             if ban_hours < 1:
@@ -359,16 +362,16 @@ def channel_ban(client, args, rmx):
         globals.channel_list[channel_name].add_banned(client_name, ban_duration)
         globals.channel_list[channel_name].remove_client(client_name)
         persistence.channels.channel_ban(channel_name, client_name, ban_duration)
+
         ban_client = globals.client_list[client_name]
-        if client_name in globals.client_list:
-            if ban_duration is None:
-                ban_client.send_message(enums.MessageType.WARNING,
-                                        "You have been permanently banned from the #%s channel!"
-                                        % channel_name)
-            else:
-                ban_client.send_message(enums.MessageType.WARNING,
-                                        "You have been banned from the #%s channel for %d hours!"
-                                        % (channel_name, ban_hours))
+        if ban_duration is None:
+            ban_client.send_message(enums.MessageType.WARNING,
+                                    "You have been permanently banned from the #%s channel!"
+                                    % channel_name)
+        else:
+            ban_client.send_message(enums.MessageType.WARNING,
+                                    "You have been banned from the #%s channel for %d hours!"
+                                    % (channel_name, ban_hours))
 
         globals.channel_list[channel_name].send_message(enums.MessageType.INFO,
                                                         "Client @%s has been banned from the #%s channel!"

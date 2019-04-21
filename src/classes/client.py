@@ -49,8 +49,7 @@ class Client:
         return self.__connection.recv(settings.BUFSIZE).decode(settings.ENCODING)
 
     def send_message(self, message_type, message):
-        self.__connection.send((message_type.value + message).encode(settings.ENCODING))
-        time.sleep(0.2)
+        self.__connection.send(("$" + message_type.value + message).encode(settings.ENCODING))
 
     def send_channels(self):
         channels = ""

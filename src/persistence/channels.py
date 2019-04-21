@@ -77,6 +77,7 @@ def remove_channel_moderator(name, username):
 def channel_ban(name, username, timestamp):
     if name in _channels_list:
         _channels_list[name]["banned"][username] = timestamp
+        channels_save()
     return False
 
 

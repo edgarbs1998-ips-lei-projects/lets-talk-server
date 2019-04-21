@@ -63,18 +63,18 @@ def user_private(client, args, rmx):
         return True
 
     private_args = args.split(" ", 1)
-    client_name = private_args[0].strip()
     if len(private_args) <= 1:
         client.send_message(enums.MessageType.HELP, help_regular["private"])
         return True
+    client_name = private_args[0].strip()
     message = private_args[1].strip()
 
-    if client_name in globals.client_list.keys():
-        globals.channel_list[client_name].send_message(enums.MessageType.PRIVATE,
-                                                       "%f %s %s"
-                                                       % (datetime.timestamp(rmx), client.get_username(), message))
+    if client_name in globals.client_list:
+        globals.client_list[client_name].send_message(enums.MessageType.PRIVATE,
+                                                      "%f %s %s"
+                                                      % (datetime.timestamp(rmx), client.get_username(), message))
         client.send_message(enums.MessageType.INFO,
-                            "Your ptivate message to @%s has been sent!"
+                            "Your private message to @%s has been sent!"
                             % client_name)
     else:
         client.send_message(enums.MessageType.WARNING,
@@ -85,7 +85,7 @@ def user_private(client, args, rmx):
 
 def user_list(client, args, rmx):
     users = ""
-    for user_name in globals.client_list.keys():
+    for user_name in globals.client_list:
         users += user_name + " "
     client.send_message(enums.MessageType.INFO,
                         "The following clients are online: %s" % users)
@@ -139,13 +139,17 @@ def user_ban(client, args, rmx):
 
     if len(ban_args) > 1:
         ban_hours = float(ban_args[1].strip())
+        if ban_hours < 1:
+            client.send_message(enums.MessageType.WARNING,
+                                "The minimum ban duration is 1 hour!")
+            return True
         ban_seconds = ban_hours * 60 * 60
         ban_duration = datetime.timestamp(datetime.now()) + ban_seconds
     else:
         ban_hours = 0
         ban_duration = None
 
-    persistence.users.ban_client(client, ban_duration)
+    persistence.users.ban_client(client_name, ban_duration)
 
     ban_client = globals.client_list[client_name]
     if ban_duration is None:
@@ -192,56 +196,52 @@ def user_unban(client, args, rmx):
 
 def user_promote(client, args, rmx):
     if args is None or len(args) == 0:
-        if args is None or len(args) == 0:
-            client.send_message(enums.MessageType.HELP, help_super_moderator["promote"])
-            return True
-
-        if client.get_level().value < enums.ClientLevel.SUPER_MODERATOR.value:
-            client.send_message(enums.MessageType.ERROR,
-                                "You are not allowed to use this command!")
-            return True
-
-        client_name = args.split(" ", 1)[0].strip()
-
-        persistence.users.promote_client(client_name)
-        if client_name is globals.client_list.keys():
-            promote_client = globals.client_list[client_name]
-            promote_client.set_level(client_name, enums.ClientLevel.SUPER_MODERATOR)
-            promote_client.sen_message(enums.MessageType.INFO,
-                                       "You have been promoted to server super moderator!")
-
-        client.send_message(enums.MessageType.INFO,
-                            "You have promoted @%s to server super moderator!"
-                            % client_name)
-
+        client.send_message(enums.MessageType.HELP, help_super_moderator["promote"])
         return True
+
+    if client.get_level().value < enums.ClientLevel.SUPER_MODERATOR.value:
+        client.send_message(enums.MessageType.ERROR,
+                            "You are not allowed to use this command!")
+        return True
+
+    client_name = args.split(" ", 1)[0].strip()
+    persistence.users.promote_client(client_name)
+    if client_name in globals.client_list:
+        promote_client = globals.client_list[client_name]
+        promote_client.set_level(enums.ClientLevel.SUPER_MODERATOR)
+        promote_client.send_message(enums.MessageType.INFO,
+                                   "You have been promoted to server super moderator!")
+
+    client.send_message(enums.MessageType.INFO,
+                        "You have promoted @%s to server super moderator!"
+                        % client_name)
+
+    return True
 
 
 def user_demote(client, args, rmx):
     if args is None or len(args) == 0:
-        if args is None or len(args) == 0:
-            client.send_message(enums.MessageType.HELP, help_super_moderator["demote"])
-            return True
-
-        if client.get_level().value < enums.ClientLevel.SUPER_MODERATOR.value:
-            client.send_message(enums.MessageType.ERROR,
-                                "You are not allowed to use this command!")
-            return True
-
-        client_name = args.split(" ", 1)[0].strip()
-
-        persistence.users.demote_client(client_name)
-        if client_name is globals.client_list.keys():
-            demote_client = globals.client_list[client_name]
-            demote_client.set_level(client_name, enums.ClientLevel.REGULAR)
-            demote_client.sen_message(enums.MessageType.INFO,
-                                      "You have been demoted from server super moderator!")
-
-        client.send_message(enums.MessageType.INFO,
-                            "You have demoted @%s from server super moderator!"
-                            % client_name)
-
+        client.send_message(enums.MessageType.HELP, help_super_moderator["demote"])
         return True
+
+    if client.get_level().value < enums.ClientLevel.SUPER_MODERATOR.value:
+        client.send_message(enums.MessageType.ERROR,
+                            "You are not allowed to use this command!")
+        return True
+
+    client_name = args.split(" ", 1)[0].strip()
+    persistence.users.demote_client(client_name)
+    if client_name in globals.client_list:
+        demote_client = globals.client_list[client_name]
+        demote_client.set_level(enums.ClientLevel.REGULAR)
+        demote_client.send_message(enums.MessageType.INFO,
+                                  "You have been demoted from server super moderator!")
+
+    client.send_message(enums.MessageType.INFO,
+                        "You have demoted @%s from server super moderator!"
+                        % client_name)
+
+    return True
 
 
 switcher = {
