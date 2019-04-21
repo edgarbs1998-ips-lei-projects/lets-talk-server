@@ -5,17 +5,16 @@ import globals
 import settings
 
 
-def common_help(client, title, help_message):
-    message = "\n" + title
-    for help_message in help_message:
-        message += "\n" + help_message
-    message += "\n"
+def common_help(client, title, help_messages):
+    message = title
+    for key in help_messages:
+        message += "\n" + help_messages[key]
     client.send_message(enums.MessageType.HELP, message)
 
 
 def client_message(client, message, rmx):
     if not client.is_logged():
-        client.send_message(enums.MessageType.INFO,
+        client.send_message(enums.MessageType.WARNING,
                             "In order to use this chat you do need to register your username."
                             "\nFor that just type '/register <password>'.")
         return True
@@ -49,8 +48,8 @@ def parse(client, message, rmx):
         else:
             args = None
 
-        if not client.is_logged() and command != "register":
-            client.send_message(enums.MessageType.INFO,
+        if not client.is_logged() and command != "register" and command != "exit":
+            client.send_message(enums.MessageType.WARNING,
                                 "In order to use this chat you do need to register your username."
                                 "\nFor that just type '/register <password>'.")
             return True

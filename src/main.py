@@ -12,86 +12,103 @@ import settings
 # Client listen function
 def handle_client(connection, address):
     client = Client(connection, address)
+    try:
+        while True:
+            client.send_message(enums.MessageType.INFO,
+                                "Can you please indicate your username?")
+            client_username = client.receive_message()
+            if client_username == "/exit":
+                commands.general_exit(client, None, None)
+                client.get_connection().close()
+                print("[%s] Client from IP address %s disconnected!"
+                      % (datetime.now().strftime(settings.DATETIME_FORMAT), client.get_address()))
+                return True
 
-    while True:
-        client.send_message(enums.MessageType.INFO,
-                            "Can you please indicate your username?")
-        client_username = client.receive_message()
-        if len(client_username) < 3:
-            client.send_message(enums.MessageType.ERROR,
-                                "Your username must be at least 3 characters long!")
-            continue
-
-        # Check if client username is banned
-        client_banned = persistence.users.is_banned(client_username)
-        if client_banned:
-            client.send_message(enums.MessageType.ERROR,
-                                "Your username is permanently banned from the server!")
-            client.get_connection().close()
-            print("[%s] Client with username %s is permanently banned!"
-                  % (datetime.now().strftime(settings.DATETIME_FORMAT), client_username))
-            return True
-        elif client_banned > 0:
-            client.send_message(enums.MessageType.ERROR,
-                                "Your username is banned from the server for %d more hours!"
-                                % client_banned)
-            client.get_connection().close()
-            print("[%s] Client with username %s is banned for %d more hours!"
-                  % (datetime.now().strftime(settings.DATETIME_FORMAT), client_username, client_banned))
-            return True
-
-        if client_username in globals.client_list:
-            client.send_message(enums.MessageType.ERROR,
-                                "The indicated username is already connected!")
-        elif persistence.users.client_exists(client_username):
-            client.send_message(enums.MessageType.INFO, "This username is registered, please indicate your password!")
-            client_password = client.receive_message()
-            if persistence.users.get_client(client_username, client_password):
-                client.set_logged(True)
-                client.send_message(enums.MessageType.INFO,
-                                    "You are now logged in!")
-                break
-            else:
+            if len(client_username) < 3:
+                print("test1")
                 client.send_message(enums.MessageType.ERROR,
-                                    "The typed password is wrong, please try again!")
-        else:
-            break
+                                    "Your username must be at least 3 characters long!")
+                continue
 
-    client.set_username(client_username)
-    globals.client_list[client.get_username()] = client
-    client.send_message(enums.MessageType.INFO,
-                        "You are now connected, $s!"
-                        % client.get_username())
-    print("[%s] Client connected with username %s"
-          % (datetime.now().strftime(settings.DATETIME_FORMAT), client.get_username()))
+            # Check if client username is banned
+            client_banned = persistence.users.is_banned(client_username)
+            if client_banned:
+                client.send_message(enums.MessageType.ERROR,
+                                    "Your username is permanently banned from the server!")
+                client.get_connection().close()
+                print("[%s] Client with username %s is permanently banned!"
+                      % (datetime.now().strftime(settings.DATETIME_FORMAT), client_username))
+                return True
+            elif client_banned > 0:
+                client.send_message(enums.MessageType.ERROR,
+                                    "Your username is banned from the server for %d more hours!"
+                                    % client_banned)
+                client.get_connection().close()
+                print("[%s] Client with username %s is banned for %d more hours!"
+                      % (datetime.now().strftime(settings.DATETIME_FORMAT), client_username, client_banned))
+                return True
 
-    # Join 'general' channel by default
-    commands.channel_join(client, "general", None)
+            if client_username in globals.client_list:
+                client.send_message(enums.MessageType.ERROR,
+                                    "The indicated username is already connected!")
+            elif persistence.users.client_exists(client_username):
+                client.send_message(enums.MessageType.INFO,
+                                    "This username is registered, please indicate your password!")
+                client_password = client.receive_message()
+                if persistence.users.get_client(client_username, client_password):
+                    client.set_logged(True)
+                    client.send_message(enums.MessageType.INFO,
+                                        "You are now logged in!")
+                    break
+                else:
+                    client.send_message(enums.MessageType.ERROR,
+                                        "The typed password is wrong, please try again!")
+            else:
+                break
 
-    if not client.is_logged():
+        client.set_username(client_username)
+        globals.client_list[client.get_username()] = client
         client.send_message(enums.MessageType.INFO,
-                            "In order to use this chat you do need to register your username."
-                            "\nFor that just type '/register <password>'.")
+                            "You are now connected, %s!"
+                            % client.get_username())
+        print("[%s] Client connected with username %s"
+              % (datetime.now().strftime(settings.DATETIME_FORMAT), client.get_username()))
 
-    while True:
-        # TODO Test with a sleep() if a message sent by client before socket receive is called still getting received by server
-        message = client.receive_message()
-        rmx = datetime.now()
+        # Join 'general' channel by default
+        commands.channel_join(client, "general", None)
 
-        print("[%s] Received from @%s on #%s: %s"
-              % (datetime.now().strftime(settings.DATETIME_FORMAT),
-                 client.get_username(), client.get_channel(), message))
-        if commands.parse(client, message, rmx):
-            break
+        if not client.is_logged():
+            client.send_message(enums.MessageType.INFO,
+                                "In order to use this chat you do need to register your username."
+                                "\nFor that just type '/register <password>'.")
 
-    # Close client connection
-    for channel in globals.channel_list.values():
-        channel.remove_client(client.get_username())
-    if client.get_username() in globals.client_list:
-        globals.client_list.pop(client.get_username())
-    client.get_connection().close()
-    print("[%s] Client %s disconnected!"
-          % (datetime.now().strftime(settings.DATETIME_FORMAT), client.get_username()))
+        while True:
+            message = client.receive_message()
+            rmx = datetime.now()
+
+            print("[%s] Received from @%s on #%s: %s"
+                  % (datetime.now().strftime(settings.DATETIME_FORMAT),
+                     client.get_username(), client.get_channel(), message))
+            if not commands.parse(client, message, rmx):
+                break
+
+        # Close client connection
+        for channel in globals.channel_list.values():
+            channel.remove_client(client.get_username())
+        if client.get_username() in globals.client_list:
+            globals.client_list.pop(client.get_username())
+        client.get_connection().close()
+        print("[%s] Client %s disconnected!"
+              % (datetime.now().strftime(settings.DATETIME_FORMAT), client.get_username()))
+    except socket.error as error:
+        if client.get_username() is not None:
+            for channel in globals.channel_list.values():
+                channel.remove_client(client.get_username())
+            if client.get_username() in globals.client_list:
+                globals.client_list.pop(client.get_username())
+        client.get_connection().close()
+        print("[%s] Client from IP address %s connection error! error: %s"
+              % (datetime.now().strftime(settings.DATETIME_FORMAT), address, error))
 
 
 # Create socket

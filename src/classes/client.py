@@ -1,3 +1,5 @@
+import time
+
 import enums
 import settings
 import globals
@@ -48,11 +50,12 @@ class Client:
 
     def send_message(self, message_type, message):
         self.__connection.send((message_type.value + message).encode(settings.ENCODING))
+        time.sleep(0.01)
 
     def send_channels(self):
-        channels = []
+        channels = ""
         for channel in globals.channel_list.values():
             if channel.is_client(self.__username):
-                channels.append(channel.get_name() + ";")
+                channels += channel.get_name() + ";"
         channels = channels[:-1]
         self.send_message(enums.ClientAction.CHANNEL, channels)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from commands import commands
+import commands
 import persistence
 import globals
 import enums
@@ -35,6 +35,10 @@ def general_help(client, args, rmx):
 
 
 def general_register(client, args, rmx):
+    if client.is_logged():
+        client.send_message(enums.MessageType.WARNING, "You are already registered!")
+        return True
+
     if args is None or len(args) == 0:
         client.send_message(enums.MessageType.HELP, help_regular["register"])
         return True
@@ -75,7 +79,7 @@ def general_exit(client, args, rmx):
 
 switcher = {
     "help": general_help,
-    "Register": general_register,
+    "register": general_register,
     "broadcast": general_broadcast,
     "exit": general_exit
 }

@@ -1,16 +1,19 @@
 from datetime import datetime
-import settings
 import math
 import globals
 
 
 class Channel:
-    def __init__(self, name):
+    def __init__(self, name, motd=None, moderators=None, banned=None):
+        if banned is None:
+            banned = {}
+        if moderators is None:
+            moderators = []
         self.__name = name
-        self.__motd = None
+        self.__motd = motd
         self.__clients = []
-        self.__moderators = []
-        self.__banned = {}
+        self.__moderators = moderators
+        self.__banned = banned
 
     def set_name(self, name):
         self.__name = name
@@ -19,7 +22,10 @@ class Channel:
         return self.__name
 
     def set_motd(self, motd):
-        self.__motd = motd
+        if len(motd) > 0:
+            self.__motd = motd
+        else:
+            self.__motd = None
 
     def get_motd(self):
         return self.__motd
@@ -87,6 +93,6 @@ class Channel:
     def send_message(self, message_type, message):
         for username in self.__clients:
             if username in globals.client_list:
-                globals.client_list[username].send_message((message_type.value + message).encode(settings.ENCODING))
+                globals.client_list[username].send_message(message_type, message)
             else:
                 del self.__clients[username]

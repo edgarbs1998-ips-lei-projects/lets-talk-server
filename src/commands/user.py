@@ -1,5 +1,5 @@
 from datetime import datetime
-from commands import commands
+import commands
 import enums
 import persistence
 import globals
@@ -69,9 +69,8 @@ def user_private(client, args, rmx):
 
     if client_name in globals.client_list.keys():
         globals.channel_list[client_name].send_message(enums.MessageType.PRIVATE,
-                                                       "%f %s %s %s"
-                                                       % (datetime.timestamp(rmx), client.get_username(),
-                                                          client_name, message))
+                                                       "%f %s %s"
+                                                       % (datetime.timestamp(rmx), client.get_username(), message))
         client.send_message(enums.MessageType.INFO,
                             "Your ptivate message to @%s has been sent!"
                             % client_name)

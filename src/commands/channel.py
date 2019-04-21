@@ -1,6 +1,7 @@
+import time
 from datetime import datetime
-from commands import commands
 from classes.channel import Channel
+import commands
 import persistence
 import enums
 import globals
@@ -8,6 +9,10 @@ import globals
 help_regular = {
     "help": "[HELP] Print the channel available commands and their usage."
             "\nUsage: channel help",
+    "set": "[SET] Set the client active channel."
+           "\nUsage: channel set <channel>",
+    "list": "[LIST] List all server channels."
+            "\nUsage: channel list",
     "join": "[JOIN] Join the specified channel if exists and set it as the active channel."
             "\nUsage: channel join <channel>",
     "leave": "[LEAVE] Leave the specified channel."
@@ -70,20 +75,53 @@ def channel_join(client, args, rmx):
 
         globals.channel_list[channel_name].add_client(client.get_username())
         client.send_channels()
+        time.sleep(0.01)
         client.set_channel(channel_name)
         client.send_message(enums.MessageType.INFO,
                             "You have joined the #%s channel."
-                            "\nThis is now your active channel!"
-                            % channel_name)
+                            "\nThe #%s channel is now your active channel!"
+                            % (channel_name, channel_name))
 
         # Display MOTD message to the user if set
         motd = globals.channel_list[channel_name].get_motd()
         if motd is not None and len(motd) > 0:
-            client.send_message(enums.MessageType.MOTD, motd)
+            client.send_message(enums.MessageType.MOTD,
+                                "%s %s" % (channel_name, motd))
     else:
         client.send_message(enums.MessageType.WARNING,
                             "The specified channel does not exist!"
                             "\nCheck 'channel help' for more info.")
+
+    return True
+
+
+def channel_set(client, args, rmx):
+    if args is None or len(args) == 0:
+        client.send_message(enums.MessageType.HELP, help_regular["set"])
+        return True
+
+    channel_name = args.split(" ", 1)[0].strip()
+    if channel_name in globals.channel_list:
+        if client.get_channel() == channel_name:
+            client.send_message(enums.MessageType.ERROR,
+                                "The specified channel is already your active channel!")
+            return True
+
+        client.set_channel(channel_name)
+    else:
+        client.send_message(enums.MessageType.WARNING,
+                            "The specified channel does not exist!"
+                            "\nCheck 'channel help' for more info.")
+
+    return True
+
+
+def channel_list(client, args, rmx):
+    channels = ""
+    for channel_name in globals.channel_list.keys():
+        channels += channel_name + " "
+    client.send_message(enums.MessageType.INFO,
+                        "The following channels are available to join: %s" % channels)
 
     return True
 
@@ -138,12 +176,15 @@ def channel_create(client, args, rmx):
         globals.channel_list[channel_name] = Channel(channel_name)
         globals.channel_list[channel_name].add_client(client.get_username())
         globals.channel_list[channel_name].promote_client(client.get_username())
+
+        persistence.channels.create_channel(channel_name)
+
         client.send_channels()
         client.set_channel(channel_name)
         client.send_message(enums.MessageType.INFO,
                             "You have created the #%s channel."
-                            "\nThis is now your active channel!"
-                            % channel_name)
+                            "\nThe #%s channel is now your active channel!"
+                            % (channel_name, channel_name))
 
     return True
 
@@ -164,6 +205,8 @@ def channel_motd(client, args, rmx):
 
         motd = args.strip()
         globals.channel_list[channel_name].set_motd(motd)
+
+        persistence.channels.channel_set_motd(channel_name, motd)
 
         client.send_message(enums.MessageType.INFO,
                             "You have set channel motd to: %s"
@@ -206,6 +249,7 @@ def channel_destroy(client, args, rmx):
                                            "Your active channel has been destroyed!"
                                            "\nYour active chhannel has been set to #general.")
         del globals.channel_list[channel_name]
+        persistence.channels.destroy_channel(channel_name)
     else:
         client.set_channel("general")
         client.send_message(enums.MessageType.ERROR,
@@ -438,6 +482,8 @@ def channel_demote(client, args, rmx):
 switcher = {
     # Regular commands
     "help": channel_help,
+    "set": channel_set,
+    "list": channel_list,
     "join": channel_join,
     "leave": channel_leave,
     "create": channel_create,

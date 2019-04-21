@@ -1,10 +1,10 @@
+from datetime import datetime
+from classes import Channel
+import settings
 import pickle
+import globals
 
 # Created channels list (moderators, banned)
-from datetime import datetime
-
-import settings
-
 _channels_list = {}
 
 
@@ -26,6 +26,11 @@ def channels_load():
     try:
         with open(settings.PERSISTENCE_PATH + 'channels.pickle', 'rb') as handle:
             _channels_list = pickle.load(handle)
+
+            for channel_name, channel_data in _channels_list.items():
+                globals.channel_list[channel_name] = Channel(channel_name, channel_data["motd"],
+                                                             channel_data["moderators"], channel_data["banned"])
+
             print("[%s] Loaded persisted channels from file"
                   % datetime.now().strftime(settings.DATETIME_FORMAT))
     except IOError:
@@ -37,9 +42,19 @@ def channels_load():
 def create_channel(name):
     _channels_list[name] = {
         "moderators": [],
-        "banned": {}
+        "banned": {},
+        "motd": None
     }
+    channels_save()
     return True
+
+
+def destroy_channel(name):
+    if name in _channels_list:
+        del _channels_list[name]
+        channels_save()
+        return True
+    return False
 
 
 def add_channel_moderator(name, username):
@@ -74,4 +89,13 @@ def channel_unban(name, username):
             del _channels_list[name]["banned"][username]
             channels_save()
             return True
+    return False
+
+
+def channel_set_motd(name, motd):
+    if name in _channels_list:
+        if len(motd) > 0:
+            _channels_list[name]["motd"] = motd
+        else:
+            _channels_list[name]["motd"] = None
     return False
